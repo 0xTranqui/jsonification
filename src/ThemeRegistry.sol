@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-// import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
-// import {BytecodeStorage} from "./utils/BytecodeStorage.sol";
 import {ThemeRenderer} from "./utils/ThemeRenderer.sol";
 import {IThemeAccessControl} from "./interfaces/IThemeAccessControl.sol";
-import {console2} from "forge-std/console2.sol";
 import {BytecodeStorage} from "./utils/BytecodeStorage.sol";
 
 /**
- * @title ThemeRegistry
+ * @title WIP --- ThemeRegistry
  * @notice Facilitates access control protected basic onchain data storage for theming content
  * @notice not audited use at own risk
  * @author Max Bochman ---Ⓟ

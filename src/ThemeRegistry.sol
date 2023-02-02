@@ -3,8 +3,10 @@ pragma solidity ^0.8.15;
 
 // import {ReentrancyGuard} from "openzeppelin-contracts/security/ReentrancyGuard.sol";
 // import {BytecodeStorage} from "./utils/BytecodeStorage.sol";
-// import {ThemeJsonBuilder} from "./utils/ThemeJsonBuilder.sol";
+import {ThemeRenderer} from "./utils/ThemeRenderer.sol";
 import {IThemeAccessControl} from "./interfaces/IThemeAccessControl.sol";
+import {console2} from "forge-std/console2.sol";
+import {BytecodeStorage} from "./utils/BytecodeStorage.sol";
 
 /**
  * @title ThemeRegistry
@@ -13,149 +15,63 @@ import {IThemeAccessControl} from "./interfaces/IThemeAccessControl.sol";
  * @author Max Bochman ---Ⓟ
  *
  */
-contract ThemeRegistry2 {
-
-    // // ||||||||||||||||||||||||||||||||
-    // // ||| ERRORS |||||||||||||||||||||
-    // // ||||||||||||||||||||||||||||||||     
-
-    // error No_Access();
-
-    // // ||||||||||||||||||||||||||||||||
-    // // ||| EVENTS |||||||||||||||||||||
-    // // ||||||||||||||||||||||||||||||||
-
-    // event ThemeIndexInit(
-    //     address sender,
-    //     address accessControl,
-    //     bytes accessControlInit,
-    //     string themeUri,
-    //     uint256 themeIndex,
-    //     address addressDataContract
-    // );
-
-    // event ThemeIndexUpdated(
-    //     address sender,
-    //     string themeUri,
-    //     uint256 themeIndex,
-    //     address addressDataContract
-    // );
-
-    // // ||||||||||||||||||||||||||||||||
-    // // ||| STORAGE ||||||||||||||||||||
-    // // ||||||||||||||||||||||||||||||||     
-
-
-    // struct Configuration {
-    //     string background;
-    //     string primaryHex;
-    //     string secondaryHex;
-    //     string tertiaryHex;
-    //     string highlightHex;        
-    //     string navigation;
-    //     string heading;
-    //     string subHeading;
-    //     string body;
-    //     string caption;        
-    //     string colorHex;
-    //     uint256 spread;        
-    //     uint256 mainRadius;
-    //     uint256 buttonRadius;        
-    // }
-
-    // mapping(uint256 => Configuration) public themeIndexInfo;
-    // mapping(uint256 => address) public themeDataAccessControl;
-
-    // uint256 themeIndex = 0;
-
-    // // // ||||||||||||||||||||||||||||||||
-    // // // ||| WRITE FUNCTIONS ||||||||||||
-    // // // ||||||||||||||||||||||||||||||||
-
-    // function initializeThemeIndex(
-    //     Configuration calldata themeConfig,
-    //     address accessControl, 
-    //     bytes memory accessControlInit
-    // ) external {
-
-    //     ++themeIndex;
-
-    //     uint256 currentIndex;
-
-    //     IThemeAccessControl(accessControl).initializeWithData(currentIndex, accessControlInit);        
-
-    //     themeDataAccessControl[currentIndex] = accessControl;
-
-    //     themeIndexInfo[currentIndex] = themeConfig;
-
-    //     // emit ThemeIndexInit({
-    //     //     sender: msg.sender,
-    //     //     accessControl: accessControl,
-    //     //     accessControlInit: accessControlInit,
-    //     //     themeUri: themeUri,
-    //     //     themeIndex: currentThemeIndex,
-    //     //     addressDataContract: dataContract
-    //     // });
-
-    //     // currentThemeIndex++;
-    // } 
+contract ThemeRegistry {
 
     // ||||||||||||||||||||||||||||||||
-    // ||| VIEW FUNCTIONS |||||||||||||
-    // ||||||||||||||||||||||||||||||||    
+    // ||| ERRORS |||||||||||||||||||||
+    // ||||||||||||||||||||||||||||||||
 
-    // function themeIndexJSON(uint256 index) public view returns (string memory) {
+    error Index_Doesnt_Exist();
+    error No_Admin_Access();
 
-    //     // Configuration memory config = themeIndexInfo[index];
-    //     string memory background = themeIndexInfo[index].background;
-    //     string memory primaryHex = themeIndexInfo[index].primaryHex;
+    // ||||||||||||||||||||||||||||||||
+    // ||| STORAGE ||||||||||||||||||||
+    // ||||||||||||||||||||||||||||||||
 
-    //     return ThemeJsonBuilder.createTheme({
-    //         backgroundString: background,
-    //         primaryHex: primaryHex
-    //     });
-    // }    
+    mapping(uint256 => address) public themeIndexInfo;
+    mapping(uint256 => mapping(address => uint256)) public themeDataAccessControl;
+    uint256 public themeIndex = 0;
 
-    // function updateThemeIndex(
-    //     uint256 themeIndex, 
-    //     string memory newThemeUri
-    // ) external nonReentrant returns (address) {
+    // ||||||||||||||||||||||||||||||||
+    // ||| WRITE FUNCTIONS ||||||||||||
+    // ||||||||||||||||||||||||||||||||
 
-    //     if (IThemeAccessControl(themeDataAccessControl[themeIndex]).getAccessLevel(themeIndex, msg.sender) < 1) {
-    //         revert No_Access();
-    //     }
+    function initializeWithData(bytes memory data) external {
 
-    //     address dataContract = themeDataInfo[themeIndex];
+        ++themeIndex;
 
-    //     if (dataContract != address(0x0)) {
-    //         BytecodeStorage.purgeBytecode(dataContract);
-    //     }        
+        themeIndexInfo[themeIndex] = BytecodeStorage.writeToBytecode(data);
+        themeDataAccessControl[themeIndex][msg.sender] = 1;
+    }
 
-    //     themeDataInfo[themeIndex] = BytecodeStorage.writeToBytecode(
-    //         abi.encode(newThemeUri)
-    //     );        
+    function setThemeData(uint256 index, bytes memory data) external {
+        if (index > themeIndex) {
+            revert Index_Doesnt_Exist();
+        }
+        if (themeDataAccessControl[index][msg.sender] != 1) {
+            revert No_Admin_Access();
+        }
+        themeIndexInfo[themeIndex] = BytecodeStorage.writeToBytecode(data);
+    }
 
-    //     emit ThemeIndexUpdated({
-    //         sender: msg.sender,
-    //         themeUri: newThemeUri,
-    //         themeIndex: themeIndex,
-    //         addressDataContract: themeDataInfo[themeIndex]
-    //     });
+    function setAdmin(uint256 index, address newAdmin) external {
+        if (index > themeIndex) {
+            revert Index_Doesnt_Exist();
+        }        
+        if (themeDataAccessControl[index][msg.sender] != 1) {
+            revert No_Admin_Access();
+        }
+        themeDataAccessControl[index][newAdmin] == 1;
+    }
 
-    //     return themeDataInfo[themeIndex];
-    // } 
+    function viewThemeData(uint256 index) view external returns (string memory) {   
+        return ThemeRenderer.encodeThemeJSON(themeIndexInfo[index]);        
+    }
 
-    // // ||||||||||||||||||||||||||||||||
-    // // ||| VIEW FUNCTIONS |||||||||||||
-    // // ||||||||||||||||||||||||||||||||    
-
-    // function viewThemeURI(uint256 themeIndex) public view returns (string memory) {
-
-    //     string memory themeUri = abi.decode(
-    //         BytecodeStorage.readFromBytecode(themeDataInfo[themeIndex]),
-    //         (string)
-    //     );
-
-    //     return themeUri;
-    // }
+    function viewAdminStatus(uint256 index, address user) view external returns (bool) {       
+        if (themeDataAccessControl[index][user] == 1) {
+            return true;
+        }
+        return false;
+    }
 }
